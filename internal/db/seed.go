@@ -98,6 +98,19 @@ func Seed(store store.Storage) {
 		}
 	}
 
+	for i := 0; i < 5_000; i++ {
+		user_id := rand.Intn(1_000)
+		follower_id := rand.Intn(1_000)
+		if user_id == follower_id {
+			i--
+			continue
+		}
+		if err := store.Followers.Follow(ctx, int64(follower_id), int64(user_id)); err != nil {
+			log.Println("Error creating follower:", err)
+			return
+		}
+	}
+
 	log.Println("Seeding complete")
 }
 

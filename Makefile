@@ -1,6 +1,6 @@
 include .env
 
-MIGRATIONS_PATH = ./cmd/migrate/migrations
+MIGRATIONS_PATH=./cmd/migrate/migrations
 
 .PHONY: migrate-create
 migration:
