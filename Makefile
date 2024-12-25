@@ -17,3 +17,7 @@ migrate-down:
 .PHONY: seed
 seed:
 	@go run cmd/migrate/seed/main.go
+
+.PHONE: gen-docs
+gen-docs:
+	@swag init -g ./api/main.go -d cmd,internal && swag fmt
