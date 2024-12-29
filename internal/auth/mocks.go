@@ -9,10 +9,10 @@ import (
 type TestAuthenticator struct {
 }
 
-const secret = "TEST"
+const secret = "test"
 
 var testClaims = jwt.MapClaims{
-	"sub": int64(42),
+	"sub": int64(1),
 	"exp": time.Now().Add(time.Hour).Unix(),
 	"iat": time.Now().Unix(),
 	"nbf": time.Now().Unix(),
