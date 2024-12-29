@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/marcosmcb/backend-engineering-with-go/internal/auth"
+	ratelimiter "github.com/marcosmcb/backend-engineering-with-go/internal/rateLimiter"
 	"github.com/marcosmcb/backend-engineering-with-go/internal/store"
 	"github.com/marcosmcb/backend-engineering-with-go/internal/store/cache"
 	"go.uber.org/zap"
@@ -16,15 +17,21 @@ func newTestApplication(t *testing.T, cfg config) *application {
 
 	logger := zap.NewNop().Sugar()
 	mockStore := store.NewMockStore()
-	cacheStore := cache.NewMockStore()
+	mockCacheStore := cache.NewMockStore()
 	testAuth := &auth.TestAuthenticator{}
+	// Rate limiter
+	rateLimiter := ratelimiter.NewFixedWindowLimiter(
+		cfg.rateLimiter.RequestsPerTimeFrame,
+		cfg.rateLimiter.TimeFrame,
+	)
 
 	return &application{
 		logger:        logger,
 		store:         mockStore,
-		cacheStorage:  cacheStore,
+		cacheStorage:  mockCacheStore,
 		authenticator: testAuth,
 		config:        cfg,
+		rateLimiter:   rateLimiter,
 	}
 }
 

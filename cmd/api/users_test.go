@@ -36,6 +36,7 @@ func TestGetUser(t *testing.T) {
 
 	t.Run("should allow authenticated requests", func(t *testing.T) {
 		mockCacheStore := app.cacheStorage.Users.(*cache.MockUserStore)
+
 		mockCacheStore.On("Get", int64(1)).Return(nil, nil).Twice()
 		mockCacheStore.On("Set", mock.Anything).Return(nil)
 
@@ -44,8 +45,10 @@ func TestGetUser(t *testing.T) {
 			t.Fatal(err)
 		}
 		req.Header.Set("Authorization", "Bearer "+testToken)
+
 		rr := executeRequest(req, mux)
 		checkResponseCode(t, http.StatusOK, rr.Code)
+
 		mockCacheStore.Calls = nil // Reset mock expectations
 	})
 
