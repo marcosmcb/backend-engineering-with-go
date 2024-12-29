@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"expvar"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,7 +16,9 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/marcosmcb/backend-engineering-with-go/docs" // This is required to generate the Swagger docs
 	"github.com/marcosmcb/backend-engineering-with-go/internal/auth"
+	"github.com/marcosmcb/backend-engineering-with-go/internal/env"
 	"github.com/marcosmcb/backend-engineering-with-go/internal/mailer"
+	ratelimiter "github.com/marcosmcb/backend-engineering-with-go/internal/rateLimiter"
 	"github.com/marcosmcb/backend-engineering-with-go/internal/store"
 	"github.com/marcosmcb/backend-engineering-with-go/internal/store/cache"
 	httpSwagger "github.com/swaggo/http-swagger/v2" // http-swagger middleware
@@ -29,6 +32,7 @@ type application struct {
 	mailer        mailer.Client
 	authenticator auth.Authenticator
 	cacheStorage  cache.Storage
+	rateLimiter   ratelimiter.Limiter
 }
 
 type config struct {
@@ -40,6 +44,7 @@ type config struct {
 	frontendURL string
 	auth        authConfig
 	redis       redisConfig
+	rateLimiter ratelimiter.Config
 }
 
 type redisConfig struct {
@@ -93,9 +98,7 @@ func (app *application) mount() http.Handler {
 	// Basic CORS
 	// for more ideas, see: https://developer.github.com/v3/#cross-origin-resource-sharing
 	r.Use(cors.Handler(cors.Options{
-		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
-		AllowedOrigins: []string{"https://*", "http://*"},
-		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedOrigins:   []string{env.GetString("CORS_ALLOWED_ORIGIN", "http://localhost:5174")},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -108,6 +111,7 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(app.RateLimiterMiddleware)
 
 	// Set a timeout value on the request context (ctx), that will signal
 	// through ctx.Done() that the request has timed out and further
@@ -117,6 +121,8 @@ func (app *application) mount() http.Handler {
 	r.Route("/v1", func(r chi.Router) {
 		// r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
 		r.Get("/health", app.healthCheckHandler)
+
+		r.With(app.BasicAuthMiddleware()).Get("/metrics", expvar.Handler().ServeHTTP)
 
 		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))

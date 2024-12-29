@@ -1,12 +1,15 @@
 package main
 
 import (
+	"expvar"
+	"runtime"
 	"time"
 
 	"github.com/marcosmcb/backend-engineering-with-go/internal/auth"
 	"github.com/marcosmcb/backend-engineering-with-go/internal/db"
 	"github.com/marcosmcb/backend-engineering-with-go/internal/env"
 	"github.com/marcosmcb/backend-engineering-with-go/internal/mailer"
+	ratelimiter "github.com/marcosmcb/backend-engineering-with-go/internal/rateLimiter"
 	"github.com/marcosmcb/backend-engineering-with-go/internal/store"
 	"github.com/marcosmcb/backend-engineering-with-go/internal/store/cache"
 	"github.com/redis/go-redis/v9"
@@ -70,6 +73,11 @@ func main() {
 				iss:    "gophersocial",
 			},
 		},
+		rateLimiter: ratelimiter.Config{
+			RequestsPerTimeFrame: env.GetInt("RATELIMITER_REQUESTS_COUNT", 20),
+			TimeFrame:            time.Second * 5,
+			Enabled:              env.GetBool("RATE_LIMITER_ENABLED", true),
+		},
 		env: env.GetString("ENV", "development"),
 	}
 
@@ -104,6 +112,12 @@ func main() {
 		cfg.auth.token.iss,
 	)
 
+	// Rate Limiter
+	rateLimiter := ratelimiter.NewFixedWindowLimiter(
+		cfg.rateLimiter.RequestsPerTimeFrame,
+		cfg.rateLimiter.TimeFrame,
+	)
+
 	app := &application{
 		config:        cfg,
 		store:         store,
@@ -111,8 +125,16 @@ func main() {
 		logger:        logger,
 		mailer:        mailer,
 		authenticator: jwtAuthenticator,
+		rateLimiter:   rateLimiter,
 	}
-
+	// Metrics collected
+	expvar.NewString("version").Set(version)
+	expvar.Publish("database", expvar.Func(func() any {
+		return db.Stats()
+	}))
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
 	mux := app.mount()
 	logger.Fatal(app.run(mux))
 }
