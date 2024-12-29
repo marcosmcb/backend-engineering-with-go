@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/marcosmcb/backend-engineering-with-go/compare/v1.0.0...v1.1.0) (2024-12-29)
+
+
+### Features
+
+* update api version automatically ([e2f9212](https://github.com/marcosmcb/backend-engineering-with-go/commit/e2f92128ede4da6e79ea7867629449056f0e9d5a))
+
 ## 1.0.0 (2024-12-29)
 
 
