@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/marcosmcb/backend-engineering-with-go/compare/v1.1.0...v1.2.0) (2025-01-05)
+
+
+### Features
+
+* Dockerfile ([5927270](https://github.com/marcosmcb/backend-engineering-with-go/commit/5927270294e9ddab766f4d2666870076e58c454f))
+
 ## [1.1.0](https://github.com/marcosmcb/backend-engineering-with-go/compare/v1.0.0...v1.1.0) (2024-12-29)
 
 
